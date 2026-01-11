@@ -1,0 +1,22 @@
+{
+  "name": "smart-road-system-2",
+  "version": "1.0.0",
+  "description": "A smart road system for managing traffic congestion",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [
+    "traffic_jam",
+    "traffic_congestion",
+    "smart_solutions",
+    "ai_model"
+  ],
+  "author": "Mahmoud El-Boshy",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  }
+}
