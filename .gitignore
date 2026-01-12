@@ -1,3 +1,5 @@
 *.xopp
 *.docx*
 node_modules/
+.env
+server/modules

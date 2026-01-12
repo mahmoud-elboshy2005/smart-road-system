@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "description": "A smart road system for managing traffic congestion",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "server": "node --watch --env-file .env server/server.js"
   },
   "keywords": [
     "traffic_jam",
