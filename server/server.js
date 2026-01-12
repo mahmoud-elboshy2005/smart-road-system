@@ -12,7 +12,14 @@ const PORT = process.env.SERVER_PORT || 3000;
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  },
+  pingInterval: 10000,
+  pingTimeout: 5000
+});
 
 
 const videoNS = io.of('/video');
