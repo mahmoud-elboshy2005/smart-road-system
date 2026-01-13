@@ -12,6 +12,7 @@ const __dirname = dirname(__filename);
 const PORT = process.env.SERVER_PORT || 5000;
 const UDP_PORT = process.env.UPD_PORT || 3000;
 const DETECTION_URL = process.env.DETECTION_URL || 'http://0.0.0.0:8000/detect';
+const CAR_LIMIT = process.env.CAR_LIMIT || 9;
 
 const app = express();
 const server = http.createServer(app);
@@ -24,6 +25,10 @@ const io = new Server(server, {
   pingInterval: 10000,
   pingTimeout: 5000
 });
+// Store frames as array of packets
+// Structure: frames[frameNumber] = { packets: [], totalPackets: N, timestamp: Date, receivedCount: N }
+const frames = {};
+const FRAME_TIMEOUT = 3000; // 3 second timeout for incomplete frames
 
 app.use(express.static(join(__dirname, 'static')));
 
@@ -36,7 +41,7 @@ const systemStatus = {
   esp32camera_connected: false,
   detectionModel_connected: false,
   esp32_connected: false,
-  car_count: 0
+  car_count: 0,
 }
 
 const connection_ids = {
@@ -45,13 +50,9 @@ const connection_ids = {
   esp32_id: null
 }
 
-// Store frames as array of packets
-// Structure: frames[frameNumber] = { packets: [], totalPackets: N, timestamp: Date, receivedCount: N }
-const frames = {};
-const FRAME_TIMEOUT = 3000; // 3 second timeout for incomplete frames
-
-// Store latest complete frame for HTTP polling
-let latestFrame = null;
+function updateSystem() {
+  
+}
 
 // Middleware to parse JSON
 app.use(express.json({ limit: '50mb' }));
@@ -73,6 +74,9 @@ app.post('/detection_results', (req, res) => {
     }
     
     res.status(200).json({ status: 'success' });
+
+    updateSystem();
+
   } catch (error) {
     console.error('Error processing detection results:', error);
     res.status(500).json({ error: error.message });
@@ -89,20 +93,7 @@ async function sendFrameToDetection(frameBuffer) {
       body: frameBuffer
     });
     
-    if (response.ok) {
-      // const result = await response.json();
-      
-      // Update system status
-      // systemStatus.car_count = result.car_count;
-      // systemStatus.has_ambulance = result.has_ambulance;
-      // console.log('Detection result - Cars:', result.car_count, 'Ambulance:', result.has_ambulance);
-      
-      // Convert hex frame back to buffer and emit to web interface
-      // if (result.frame) {
-      //   const processedFrame = Buffer.from(result.frame, 'hex');
-      //   webInterfaceNS.emit('frame', processedFrame);
-      // }
-    } else {
+    if (!response.ok) {
       console.error('Detection server returned error:', response.status);
     }
   } catch (error) {
