@@ -50,10 +50,6 @@ const connection_ids = {
   esp32_id: null
 }
 
-function updateSystem() {
-  
-}
-
 // Middleware to parse JSON
 app.use(express.json({ limit: '50mb' }));
 
@@ -61,6 +57,7 @@ app.use(express.json({ limit: '50mb' }));
 app.post('/detection_results', (req, res) => {
   try {
     const { car_count, has_ambulance, frame } = req.body;
+    res.status(200).json({ status: 'success' });
     
     // Update system status
     systemStatus.car_count = car_count || 0;
@@ -73,13 +70,13 @@ app.post('/detection_results', (req, res) => {
       webInterfaceNS.emit('frame', processedFrame);
     }
     
-    res.status(200).json({ status: 'success' });
-
-    updateSystem();
+    devicesNS.emit('detection_update', {
+      car_count: systemStatus.car_count,
+      has_ambulance: systemStatus.has_ambulance
+    });
 
   } catch (error) {
     console.error('Error processing detection results:', error);
-    res.status(500).json({ error: error.message });
   }
 });
 

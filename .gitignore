@@ -1,7 +1,7 @@
 *.xopp
 *.docx*
 node_modules/
-.env
+# .env
 server/modules
 .vscode
 *latency*

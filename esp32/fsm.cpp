@@ -7,11 +7,8 @@ State currentState = STATE_IDLE;
 static Transition transitionTable[MAX_TRANSITIONS];
 static int transitionCount = 0;
 
-// Static event queue (circular buffer)
-static Event eventQueue[MAX_EVENTS];
-static int queueHead = 0;
-static int queueTail = 0;
-static int queueSize = 0;
+// FreeRTOS event queue
+static QueueHandle_t eventQueue = NULL;
 
 // Private helper function to find matching transition
 static Transition* find_transition(State state, Event event) {
@@ -28,9 +25,14 @@ static Transition* find_transition(State state, Event event) {
 void fsm_init(State initialState) {
     currentState = initialState;
     transitionCount = 0;
-    queueHead = 0;
-    queueTail = 0;
-    queueSize = 0;
+    
+    // Create FreeRTOS queue for events
+    if (eventQueue == NULL) {
+        eventQueue = xQueueCreate(MAX_EVENTS, sizeof(Event));
+        if (eventQueue == NULL) {
+            Serial.println("Error: Failed to create event queue!");
+        }
+    }
 }
 
 // Register a transition in the transition table
@@ -51,23 +53,24 @@ bool fsm_register_transition(State fromState, State toState, Event event, Action
 
 // Add event to the queue
 void fsm_push_event(Event event) {
-    if (queueSize >= MAX_EVENTS) {
-        Serial.println("Warning: Event queue full, event discarded!");
+    if (eventQueue == NULL) {
+        Serial.println("Error: Event queue not initialized!");
         return;
     }
     
-    eventQueue[queueTail] = event;
-    queueTail = (queueTail + 1) % MAX_EVENTS;
-    queueSize++;
+    if (xQueueSend(eventQueue, &event, 0) != pdPASS) {
+        Serial.println("Warning: Event queue full, event discarded!");
+    }
 }
 
 // Process all events in the queue (main loop function)
 void fsm_process_events(void) {
-    while (queueSize > 0) {
-        Event event = eventQueue[queueHead];
-        queueHead = (queueHead + 1) % MAX_EVENTS;
-        queueSize--;
-        
+    if (eventQueue == NULL) {
+        return;
+    }
+    
+    Event event;
+    while (xQueueReceive(eventQueue, &event, 0) == pdPASS) {
         if (!fsm_dispatch_event(event)) {
             Serial.print("Warning: No transition found for event ");
             Serial.print(event);
@@ -124,9 +127,9 @@ void fsm_reset(State initialState) {
     transitionCount = 0;
     
     // Clear event queue
-    queueHead = 0;
-    queueTail = 0;
-    queueSize = 0;
+    if (eventQueue != NULL) {
+        xQueueReset(eventQueue);
+    }
     
     Serial.print("FSM Reset to state: ");
     Serial.println(initialState);

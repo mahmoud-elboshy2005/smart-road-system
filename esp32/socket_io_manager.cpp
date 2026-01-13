@@ -24,6 +24,9 @@ extern IPAddress serverIP;
 extern uint16_t serverPort;
 extern uint16_t updPort;
 
+extern uint32_t cars_count;
+extern bool has_ambulance;
+
 void socket_io_exec_command(String command, JsonVariant requestData, JsonVariant responseData);
 void socket_io_send_ack(JsonVariant requestData, JsonVariant responseData);
 void socket_io_send_status(void);
@@ -118,6 +121,9 @@ void socketIOEvent(const socketIOmessageType_t type, const uint8_t * payload, co
 
           Serial.print("[Server] ");
           Serial.println(output);
+        } else if (eventName == "detection_update")
+        {
+
         } else if (eventName == "emergency_stop")
         {
           Serial.println("Emergency stop received from server!!");

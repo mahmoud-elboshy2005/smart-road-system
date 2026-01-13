@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 #include <stdbool.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 
 // Define maximum number of transitions
 #define MAX_TRANSITIONS 32
