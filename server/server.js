@@ -11,6 +11,7 @@ const __dirname = dirname(__filename);
 
 const PORT = process.env.SERVER_PORT || 5000;
 const UDP_PORT = process.env.UPD_PORT || 3000;
+const DETECTION_URL = process.env.DETECTION_URL || 'http://0.0.0.0:8000/detect';
 
 const app = express();
 const server = http.createServer(app);
@@ -24,6 +25,7 @@ const io = new Server(server, {
   pingTimeout: 5000
 });
 
+app.use(express.static(join(__dirname, 'static')));
 
 const videoNS = io.of('/video');
 const detectionNS = io.of('/detection');
@@ -47,6 +49,66 @@ const connection_ids = {
 // Structure: frames[frameNumber] = { packets: [], totalPackets: N, timestamp: Date, receivedCount: N }
 const frames = {};
 const FRAME_TIMEOUT = 3000; // 3 second timeout for incomplete frames
+
+// Store latest complete frame for HTTP polling
+let latestFrame = null;
+
+// Middleware to parse JSON
+app.use(express.json({ limit: '50mb' }));
+
+// HTTP endpoint to receive detection results from model.py
+app.post('/detection_results', (req, res) => {
+  try {
+    const { car_count, has_ambulance, frame } = req.body;
+    
+    // Update system status
+    systemStatus.car_count = car_count || 0;
+    systemStatus.has_ambulance = has_ambulance || false;
+    console.log('Detection results received - Cars:', systemStatus.car_count, 'Ambulance:', systemStatus.has_ambulance);
+    
+    // Convert hex frame back to buffer and emit to web interface
+    if (frame) {
+      const processedFrame = Buffer.from(frame, 'hex');
+      webInterfaceNS.emit('frame', processedFrame);
+    }
+    
+    res.status(200).json({ status: 'success' });
+  } catch (error) {
+    console.error('Error processing detection results:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+async function sendFrameToDetection(frameBuffer) {
+  try {
+    const response = await fetch(DETECTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/octet-stream'
+      },
+      body: frameBuffer
+    });
+    
+    if (response.ok) {
+      // const result = await response.json();
+      
+      // Update system status
+      // systemStatus.car_count = result.car_count;
+      // systemStatus.has_ambulance = result.has_ambulance;
+      // console.log('Detection result - Cars:', result.car_count, 'Ambulance:', result.has_ambulance);
+      
+      // Convert hex frame back to buffer and emit to web interface
+      // if (result.frame) {
+      //   const processedFrame = Buffer.from(result.frame, 'hex');
+      //   webInterfaceNS.emit('frame', processedFrame);
+      // }
+    } else {
+      console.error('Detection server returned error:', response.status);
+    }
+  } catch (error) {
+    console.error('Error sending frame to detection:', error.message);
+  }
+}
 
 udpSocket.on('error', (err) => {
   console.log(`UDP server error:\n${err.stack}`);
@@ -93,9 +155,8 @@ udpSocket.on('message', (msg, rinfo) => {
     const completeFrame = Buffer.concat(frames[frameNumber].packets);
     // console.log(`Complete frame size: ${completeFrame.length} bytes`);
     
-    // Emit the complete frame
-    detectionNS.emit('frame', completeFrame);
-    webInterfaceNS.emit('frame', completeFrame);
+    // Send to detection model
+    sendFrameToDetection(completeFrame);
     
     // Clean up this frame
     delete frames[frameNumber];
@@ -146,7 +207,9 @@ detectionNS.on('connection', (socket) => {
   socket.on('detection_result', (data) => {
     // Update car count and log it
     systemStatus.car_count = data.car_count;
+    systemStatus.has_ambulance = data.has_ambulance;
     console.log('Updated Car Count:', systemStatus.car_count);
+    webInterfaceNS.emit('frame', data.frame);
   });
 });
 
@@ -172,7 +235,6 @@ webInterfaceNS.on('connection', (socket) => {
   });
 });
 
-app.use(express.static(join(__dirname, 'static')));
 
 server.listen(PORT, () => {
   console.log(`Server is running @ http://localhost:${PORT}`);

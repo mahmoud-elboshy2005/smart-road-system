@@ -204,7 +204,7 @@ void setup() {
   cameraConfig.pin_pwdn = PWDN_GPIO_NUM;
   cameraConfig.pin_reset = RESET_GPIO_NUM;
   cameraConfig.xclk_freq_hz = 24000000;
-  cameraConfig.frame_size = FRAMESIZE_SVGA;
+  cameraConfig.frame_size = FRAMESIZE_XGA;
   cameraConfig.pixel_format = PIXFORMAT_JPEG;  // for streaming
   //cameraConfig.pixel_format = PIXFORMAT_RGB565; // for face detection/recognition
   cameraConfig.grab_mode = CAMERA_GRAB_LATEST;
