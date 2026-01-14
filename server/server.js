@@ -221,6 +221,24 @@ webInterfaceNS.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('Web Interface disconnected from the webinterface namespace', 'socketID:', socket.id);
   });
+
+  socket.on('control_command', (data) => {
+    console.log('Control command received from web interface:', data);
+    // Forward command to ESP32 if connected
+    devicesNS.emit('control_command', data);
+  });
+
+  socket.on('set_car_count', (data) => {
+    console.log('Set car count command received from web interface:', data);
+    // Forward car count to ESP32 if connected
+    devicesNS.emit('set_car_count', data);
+  });
+
+  socket.on('set_speed', (data) => {
+    console.log('Set speed command received from web interface:', data);
+    // Forward speed to ESP32 if connected
+    devicesNS.emit('set_speed', data);
+  });
 });
 
 

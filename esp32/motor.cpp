@@ -69,7 +69,7 @@ void motor_turn_left()
     return;
 
   motor_command_t command = MOTOR_LEFT;
-  xQueueSend(motor_queue, &command, portMAX_DELAY);
+  xQueueSend(motor_queue, &command, pdMS_TO_TICKS(100));
 }
 
 void motor_turn_right()
@@ -78,7 +78,7 @@ void motor_turn_right()
     return;
 
   motor_command_t command = MOTOR_RIGHT;
-  xQueueSend(motor_queue, &command, portMAX_DELAY);
+  xQueueSend(motor_queue, &command, pdMS_TO_TICKS(100));
 }
 
 void motor_stop()
@@ -87,5 +87,10 @@ void motor_stop()
     return;
 
   motor_command_t command = MOTOR_STOP;
-  xQueueSend(motor_queue, &command, portMAX_DELAY);
+  xQueueSend(motor_queue, &command, pdMS_TO_TICKS(100));
+}
+
+bool motor_is_ready()
+{
+  return motor_queue != NULL;
 }

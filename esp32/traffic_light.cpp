@@ -38,7 +38,6 @@ void traffic_light_task(void *pvParams)
     // Queue creation failed
     Serial.println("[Traffic Light] Failed to create traffic light queue");
     vTaskDelete(NULL);
-    return;
   }
 
   pinMode(TRAFFIC_1_RED, OUTPUT);
@@ -87,9 +86,7 @@ void traffic_light_task(void *pvParams)
         digitalWrite(TRAFFIC_2_RED, LOW);
         digitalWrite(TRAFFIC_2_YELLOW, LOW);
         digitalWrite(TRAFFIC_2_GREEN, LOW);
-        break;
       }
-      break;
     }
     vTaskDelay(pdMS_TO_TICKS(10)); // Small delay to prevent task hogging CPU
   }
@@ -127,6 +124,11 @@ void traffic_light_turn_off_all()
     command.type = TURN_OFF_ALL;
     xQueueSend(traffic_light_queue, &command, pdMS_TO_TICKS(100));
   }
+}
+
+bool traffic_light_is_ready()
+{
+  return traffic_light_queue != NULL;
 }
 
 void light(traffic_light_id_t id, traffic_light_color_t color)

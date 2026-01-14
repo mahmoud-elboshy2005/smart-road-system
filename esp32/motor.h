@@ -6,5 +6,6 @@ void motor_task(void *pvParams);
 void motor_turn_left();
 void motor_turn_right();
 void motor_stop();
+bool motor_is_ready();
 
 #endif //_MOTOR_H_

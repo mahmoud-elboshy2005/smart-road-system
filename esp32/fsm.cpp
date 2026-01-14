@@ -3,7 +3,7 @@
 // Global current state variable
 State currentState = STATE_IDLE;
 
-// Static transition table
+// Transition table
 static Transition transitionTable[MAX_TRANSITIONS];
 static int transitionCount = 0;
 
@@ -66,6 +66,7 @@ void fsm_push_event(Event event) {
 // Process all events in the queue (main loop function)
 void fsm_process_events(void) {
     if (eventQueue == NULL) {
+        Serial.println("[FSM] ERROR: Event queue is NULL!");
         return;
     }
     
@@ -133,4 +134,9 @@ void fsm_reset(State initialState) {
     
     Serial.print("FSM Reset to state: ");
     Serial.println(initialState);
+}
+
+// Check if FSM is ready
+bool fsm_is_ready(void) {
+    return eventQueue != NULL;
 }

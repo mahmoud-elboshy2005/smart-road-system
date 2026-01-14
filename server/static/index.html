@@ -4,10 +4,71 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Smart Road System</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <img id="videoFeed" src="" alt="Video Feed">
+  <div class="container">
+    <header>
+      <h1>🚦 Smart Traffic Control System</h1>
+    </header>
+    
+    <div class="main-content">
+      <div class="video-section">
+        <h2>Live Camera Feed</h2>
+        <div class="video-container">
+          <img id="videoFeed" src="" alt="Video Feed">
+        </div>
+      </div>
+      
+      <div class="control-panel">
+        <h2>Control Panel</h2>
+        
+        <div class="control-group">
+          <h3>Traffic Control</h3>
+          <div class="button-grid">
+            <button id="btnStart" class="btn btn-success">▶ Start</button>
+            <button id="btnStop" class="btn btn-danger">⏹ Stop</button>
+            <button id="btnEmergency" class="btn btn-warning">🚨 Emergency</button>
+            <button id="btnReset" class="btn btn-secondary">🔄 Reset</button>
+          </div>
+        </div>
+        
+        <div class="control-group">
+          <h3>Car Count</h3>
+          <div class="input-group">
+            <input type="number" id="carCountInput" min="0" max="50" value="0" placeholder="Enter car count">
+            <button id="btnSendCarCount" class="btn btn-primary">Send Count</button>
+          </div>
+          <div class="info-display">
+            <span>Current Count: <strong id="currentCarCount">0</strong></span>
+          </div>
+        </div>
+        
+        <div class="control-group">
+          <h3>Speed Control</h3>
+          <div class="slider-container">
+            <label for="speedSlider">Speed: <span id="speedValue">50</span>%</label>
+            <input type="range" id="speedSlider" min="0" max="100" value="50" class="slider">
+          </div>
+        </div>
+        
+        <div class="control-group">
+          <h3>System Status</h3>
+          <div class="status-display">
+            <div class="status-item">
+              <span class="status-label">Connection:</span>
+              <span id="connectionStatus" class="status-value status-disconnected">Disconnected</span>
+            </div>
+            <div class="status-item">
+              <span class="status-label">Emergency:</span>
+              <span id="emergencyStatus" class="status-value">Normal</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
   <script src="script.js"></script>
 </body>

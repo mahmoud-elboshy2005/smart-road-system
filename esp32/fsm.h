@@ -13,8 +13,14 @@
 // State enum - you can extend this with your specific states
 typedef enum {
     STATE_IDLE,
-    STATE_PROCESSING,
-    STATE_WAITING,
+    STATE_STREET_1_GREEN_STREET_2_RED,
+    STATE_STREET_1_YELLOW_STREET_2_RED,
+    STATE_STREET_1_RED_STREET_2_GREEN,
+    STATE_STREET_1_RED_STREET_2_YELLOW,
+    STATE_EMERGENCY,
+    STATE_MOTOR_OPEN,
+    STATE_MOTOR_CLOSE,
+    STATE_MOTOR_STOP,
     STATE_ERROR,
     STATE_COMPLETE,
     // Add more states as needed
@@ -24,6 +30,10 @@ typedef enum {
 typedef enum {
     EVENT_NONE,
     EVENT_START,
+    EVENT_SWITCH,
+    EVENT_EMERGENCY,
+    EVENT_CLEAR_EMERGENCY,
+    EVENT_RESUME,
     EVENT_STOP,
     EVENT_TIMEOUT,
     EVENT_SUCCESS,
@@ -54,5 +64,6 @@ bool fsm_dispatch_event(Event event);
 State fsm_get_current_state(void);
 void fsm_set_current_state(State state);
 void fsm_reset(State initialState);
+bool fsm_is_ready(void);
 
 #endif // _FSM_H_

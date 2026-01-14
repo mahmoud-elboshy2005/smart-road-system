@@ -12,6 +12,7 @@
 #include "traffic_light.h"
 #include "pin_config.h"
 #include "motor.h"
+#include "fsm.h"
 
 #define SOCKET_IO_STATUS_OK         "ok"
 #define SOCKET_IO_STATUS_ERROR      "error"
@@ -24,9 +25,12 @@ extern IPAddress serverIP;
 extern uint16_t serverPort;
 extern uint16_t updPort;
 
-extern uint32_t cars_count;
-extern bool has_ambulance;
+extern volatile uint32_t car_count;
+extern volatile bool has_ambulance;
+extern volatile uint32_t increaseInDuration;
 
+void open_pump(void);
+void close_pump(void);
 void socket_io_exec_command(String command, JsonVariant requestData, JsonVariant responseData);
 void socket_io_send_ack(JsonVariant requestData, JsonVariant responseData);
 void socket_io_send_status(void);
@@ -35,6 +39,10 @@ void socketIOEvent(const socketIOmessageType_t type, const uint8_t * payload, co
 
 void socket_io_task(void * pvParams)
 {
+  Serial.println("[IOc] Socket IO task starting...");
+
+  // setReconnectInterval to 10s, new from v2.5.1 to avoid flooding server. Default is 0.5s
+  socketIO.setReconnectInterval(5000);
 
   // server address, port and URL
   socketIO.begin(serverIP, serverPort);
@@ -121,9 +129,83 @@ void socketIOEvent(const socketIOmessageType_t type, const uint8_t * payload, co
 
           Serial.print("[Server] ");
           Serial.println(output);
+        } else if (eventName == "control_command") 
+        {
+          String action = requestData["action"];
+          // Serial.print("Control command received: ");
+          if (action == "emergency")
+          {
+            // Serial.println("Start command received from server!!");
+            if (!has_ambulance) {
+              has_ambulance = true;
+              Serial.println("Ambulance detected! Prioritizing traffic light.");
+              fsm_push_event(EVENT_EMERGENCY);
+            }
+            
+            // Start motor
+            // motor_start();
+          } else if (action == "reset")
+          {
+            // Serial.println("Stop command received from server!!");
+            if (has_ambulance) {
+              has_ambulance = false;
+              Serial.println("Ambulance cleared! Resuming normal operation.");
+              fsm_push_event(EVENT_CLEAR_EMERGENCY);
+            }
+            // Stop motor
+            motor_stop();
+          }
+        } else if (eventName == "set_car_count") {
+          car_count = requestData["car_count"].as<uint32_t>();
+          // Serial.print("Car count set to: ");
+          // Serial.println(car_count);
+          if (car_count > CAR_COUNT_THRESHOLD)
+          {
+            increaseInDuration = EXTRA_TIME_PER_CAR_MS * (car_count - CAR_COUNT_THRESHOLD);
+          } else {
+            increaseInDuration = 0;
+          }
+        } else if (eventName == "set_speed") {
+          uint32_t speed = requestData["speed"].as<uint32_t>();
+          
+          if (speed > SPEED_THRESHOLD) {
+            Serial.print("High speed detected: ");
+            Serial.print(speed);
+            Serial.println(" km/h. Considering emergency.");
+            open_pump();
+          } else {
+            Serial.print("Normal speed: ");
+            Serial.print(speed);
+            Serial.println(" km/h.");
+            close_pump();
+          }
         } else if (eventName == "detection_update")
         {
+          uint32_t local_car_count = requestData["car_count"].as<uint32_t>();
+          bool local_has_ambulance = requestData["has_ambulance"].as<bool>();
 
+          if (local_has_ambulance && !has_ambulance) {
+            has_ambulance = true;
+            Serial.println("Ambulance detected! Prioritizing traffic light.");
+            fsm_push_event(EVENT_EMERGENCY);
+          }
+          if (!local_has_ambulance && has_ambulance) {
+            has_ambulance = false;
+            Serial.println("Ambulance cleared! Resuming normal operation.");
+            fsm_push_event(EVENT_CLEAR_EMERGENCY);
+          }
+
+          if (local_car_count > CAR_COUNT_THRESHOLD)
+          {
+            increaseInDuration = EXTRA_TIME_PER_CAR_MS * (local_car_count - CAR_COUNT_THRESHOLD);
+          } else {
+            increaseInDuration = 0;
+          }
+
+          // Serial.print("Cars count updated: ");
+          // Serial.println(car_count);
+          // Serial.print("Has ambulance: ");
+          // Serial.println(has_ambulance ? "Yes" : "No");
         } else if (eventName == "emergency_stop")
         {
           Serial.println("Emergency stop received from server!!");
@@ -177,12 +259,12 @@ void socketIOEvent(const socketIOmessageType_t type, const uint8_t * payload, co
       break;
     
     case sIOtype_PING:
-      Serial.println("[IOc] Get PING");
+      // Serial.println("[IOc] Get PING");
 
       break;
 
     case sIOtype_PONG:
-      Serial.println("[IOc] Get PONG");
+      // Serial.println("[IOc] Get PONG");
 
       break;
   }
@@ -212,12 +294,16 @@ void socket_io_send_status(void)
   data["WiFi Dbm"] = WiFi.RSSI();
 
   // serialize and send
-  String output;
-  serializeJson(response, output);
+  String packet;
+  serializeJson(response, packet);
+
+  String output = devicesNS;
+  output += ","; 
+  output += packet;
   socketIO.sendEVENT(output);
 
-  Serial.print("[IOc] Sent status: ");
-  Serial.println(output);
+  // Serial.print("[IOc] Sent status: ");
+  // Serial.println(output);
 }
 
 void socket_io_exec_command(String command, JsonVariant requestData, JsonVariant responseData)
